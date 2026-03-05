@@ -1,0 +1,30 @@
+Checks: >
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  bugprone-*,
+  performance-*,
+  readability-*,
+  portability-*,
+  modernize-*,
+  llvm-*,
+  -modernize-use-trailing-return-type,
+  -modernize-use-auto,
+  -modernize-concat-nested-namespaces,
+  -modernize-avoid-c-arrays,
+  -modernize-return-braced-init-list,
+  -readability-identifier-naming,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-pro-type-union-access,
+  -llvm-header-guard,
+  -llvm-include-order
+WarningsAsErrors: 'clang-analyzer-*,bugprone-*,cppcoreguidelines-*,modernize-*,readability-*'
+HeaderFilterRegex: '.*'
+FormatStyle: file
+CheckOptions:
+  - key: readability-magic-numbers.IgnoredValues
+    value: '0,1,-1,2,255,1024'
+  - key: modernize-use-nullptr.NullMacros
+    value: 'NULL'
+  - key: modernize-use-nullptr.NullptrT
+    value: 'nullptr'

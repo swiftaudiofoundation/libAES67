@@ -1,0 +1,32 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+AllowShortEnumsOnASingleLine: false
+
+ColumnLimit: 100
+
+SortIncludes: true
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex:           '^<.*\.h>'
+    Priority:        1
+  - Regex:           '^".*\.h"'
+    Priority:        2
+  - Regex:           '.*'
+    Priority:        3
+
+SpaceAfterCStyleCast: true
+AlignAfterOpenBracket: Align
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakTemplateDeclarations: Yes
+
+PointerAlignment: Left
+DerivePointerAlignment: false
+
+RequiresClausePosition: WithPreceding
