@@ -40,9 +40,13 @@
 
 #include <time.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <_string.h>
+#include <locale.h>
 
 #include "../include/libAES67/time.h"
 #include "../include/libAES67/__tai.h"
+#include "../include/libAES67/__posix_tz.h"
 
 int la_time_get(la_time_t *xtp, const la_clock_t clock_type) {
     if (!xtp) { return -1; }
@@ -203,13 +207,136 @@ int la_time_sleep(const la_time_t *duration) {
     return 0;
 }
 
-int la_time_sleep_until(const la_time_t *time, la_clock_t clock) {}
+int la_time_sleep_until(const la_time_t *target, const la_clock_t clock_type) {
+    if (!target) { return -1; }
 
-int la_tz_prep(la_timezone_t **timezone, const char *tzstring) {}
+    la_time_t now;
+    if (la_time_get(&now, clock_type) != 0) { return -1; }
 
-char *la_tz_error(la_timezone_t *timezone) {}
+    int64_t delta_sec  = target->sec - now.sec;
+    int64_t delta_nsec = target->nsec - now.nsec;
 
-void la_tz_free(la_timezone_t *timezone) {}
+    if (delta_nsec < 0) {
+        delta_sec -= 1;
+        delta_nsec += LA_NS_PER_SEC;
+    }
+
+    /* Return if target is in the past */
+    if (delta_sec < 0 || (delta_sec == 0 && delta_nsec <= 0)) {
+        return 0;
+    }
+
+    struct timespec req;
+    struct timespec rem;
+
+    req.tv_sec = delta_sec;
+    req.tv_nsec = (long)delta_nsec;
+
+    /* Normalize duration to ensure tv_nsec < 1e9 */
+    if (req.tv_nsec >= LA_NS_PER_SEC) {
+        req.tv_sec += req.tv_nsec / LA_NS_PER_SEC;
+        req.tv_nsec %= LA_NS_PER_SEC;
+    }
+
+    while (nanosleep(&req, &rem) != 0) {
+        if (errno != EINTR) {
+            return -1;
+        }
+        req = rem;
+    }
+
+    return 0;
+}
+
+int la_tz_prep(la_timezone_t **timezone, const char *tzstring) {
+    if (!timezone) { return -1; }
+    *timezone = NULL;
+
+    la_timezone_t *tz = calloc(1, sizeof(la_timezone_t));
+    if (!tz) { return -1; }
+
+    tz->error_code = 0;
+    tz->error_message = NULL;
+
+    if (!tzstring || tzstring[0] == '\0') { tzstring = "UTC"; }
+
+    /* IANA TIMEZONE */
+    if (strchr(tzstring, '/')) {
+        setenv("TZ", tzstring, 1);
+        tzset();
+
+        const time_t now = time(NULL);
+        struct tm local_tm;
+        struct tm utc_tm;
+        localtime_r(&now, &local_tm);
+        gmtime_r(&now, &utc_tm);
+
+        tz->offset_sec = (int)difftime(mktime(&local_tm), mktime(&utc_tm));
+        tz->is_dst = local_tm.tm_isdst > 0 ? 1 : 0;
+        tz->name = strdup(tzname[local_tm.tm_isdst ? 1 : 0]);
+        if (!tz->name) {
+            tz->error_code = 1;
+            tz->error_message = strdup("Failed to allocate memory for timezone name");
+            free(tz);
+            return -1;
+        }
+    } else {
+        if (__la_parse_posix_tz(tz, tzstring) != 0) {
+            tz->error_code = 2;
+            tz->error_message = strdup("Failed to parse POSIX timezone string");
+            free(tz); // fixme: mem leak tz->error_message
+            return -1;
+        }
+    }
+
+    *timezone = tz;
+    return 0;
+}
+
+char *la_tz_error(la_timezone_t *timezone) {
+    // TODO: portability: asprint
+    const char *locale = setlocale(LC_ALL, NULL);
+
+    if (!timezone) {
+        return strdup("Timezone object is NULL. Could not allocate or prepare.");
+    }
+
+    if (timezone->error_message) {
+        char *msg = NULL;
+        asprintf(&msg, "Timezone error (code %d): %s. Locale: %s",
+                 timezone->error_code,
+                 timezone->error_message,
+                 locale ? locale : "C");
+        return msg;
+    }
+
+    if (!timezone->name || timezone->name[0] == '\0') {
+        char *msg = NULL;
+        asprintf(&msg, "Timezone preparation failed. Invalid or empty TZ string. Locale: %s",
+                 locale ? locale : "C");
+        return msg;
+    }
+
+    char *msg = NULL;
+    asprintf(&msg, "No error. Timezone: %s", timezone->name);
+    return msg;
+}
+
+void la_tz_free(la_timezone_t *timezone) {
+    if (!timezone) { return; }
+
+    if (timezone->name) {
+        free((void*)timezone->name);
+        timezone->name = NULL;
+    }
+
+    if (timezone->error_message) {
+        free((void*)timezone->error_message);
+        timezone->error_message = NULL;
+    }
+
+    free(timezone);
+}
 
 int la_time_make(la_time_t *xtp, const struct tm *tmptr, const la_timezone_t *timezone) {}
 

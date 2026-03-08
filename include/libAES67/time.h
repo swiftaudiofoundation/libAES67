@@ -150,9 +150,26 @@ typedef enum {
 } la_clock_t;
 
 typedef struct {
-    int offest_sec;   /**< Offset in seconds from UTC. */
+    int offset_sec;   /**< Offset in seconds from UTC. */
     int is_dst;       /**< Non-zero if daylight saving is in effect, 0 otherwise. */
     const char *name; /**< Name of the timezone (e.g., "UTC", "CET"). */
+
+    /* POSIX DST INFO */
+    int dst_offset_sec;    /**< Offset for DST (typically +3600s) */
+    int dst_start_month;   /**< DST start month 1-12 */
+    int dst_start_week;    /**< DST start week 1-5 (-1 = last week) */
+    int dst_start_weekday; /**< DST start weekday 0-6 (Sun=0) */
+    int dst_start_hour;    /**< DST start hour 0-23 */
+    int dst_start_seconds;
+
+    int dst_end_month;     /**< DST end month 1-12 */
+    int dst_end_week;      /**< DST end week 1-5 (-1 = last week) */
+    int dst_end_weekday;   /**< DST end weekday 0-6 (Sun=0) */
+    int dst_end_hour;      /**< DST end hour 0-23 */
+    int dst_end_seconds;
+
+    int error_code;
+    char *error_message;
 } la_timezone_t;
 
 // TODO: Potentially refactor to ptp.h
@@ -213,11 +230,11 @@ int la_time_sleep(const la_time_t *duration);
 /**
  * @brief Sleep until a specified absolute time.
  *
- * @param time Absolute target time.
- * @param clock Clock source to use (e.g., monotonic, PTP).
+ * @param target Absolute target time.
+ * @param clock_type Clock source to use (e.g., monotonic, PTP).
  * @return 0 on success, non-zero on error.
  */
-int la_time_sleep_until(const la_time_t *time, la_clock_t clock);
+int la_time_sleep_until(const la_time_t *target, la_clock_t clock_type);
 
 /**
  * @brief Prepare a timezone object for time conversion.

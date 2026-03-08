@@ -50,6 +50,7 @@ add_library(libAES67 STATIC libAES67.c
         include/libAES67/time.h
         src/time.c
         include/libAES67/__tai.h
+        include/libAES67/__posix_tz.h
 )
 
 if (WIN32)
