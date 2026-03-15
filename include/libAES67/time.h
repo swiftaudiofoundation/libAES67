@@ -55,7 +55,10 @@
 #include "platform.h"
 #include "__tai.h"
 
-#define LA_NS_PER_SEC  1000000000LL
+#define LA_NS_PER_SEC        1000000000LL
+#define LA_SEC_PER_MIN       60
+#define LA_MIN_PER_HOUR      60
+#define LA_HOUR_PER_DAY      24
 
 /**
  * @def LA_CLOCK_1588
@@ -92,6 +95,23 @@ typedef struct {
      * in time. Values will always be in range 0 to 999_999_999.
      */
     int_fast32_t nsec;
+
+    /**
+     * Number of minutes elapsed in the current hour.
+     * Values will always be in range 0 to 59 after normalization.
+     */
+    int_fast32_t min;
+
+    /**
+     * Number of hours elapsed since the start of the day.
+     * Values will always be in range 0 to 23 after normalization.
+     */
+    int_fast32_t hour;
+
+    /**
+     * Number of days since the start of some reference epoch.
+     */
+    int_fast32_t day;
 } la_time_t;
 
 // TODO: Add CLOCK_BOOTTIME => CLOCK_UPTIME, CLOCK_MONOTONIC_COARSE => MONOTONIC_RAW
@@ -244,12 +264,12 @@ int la_time_conv(la_time_t *dst, la_clock_t dst_clock_type, const la_time_t *src
 int la_time_normalize(la_time_t *xtp);
 
 /**
- * @brief Add two @p la_time_t values.
+ * @brief Add two positive @p la_time_t values.
  *
- * @param dst Result of lhs + rhs.
- * @param lhs Left-hand side.
- * @param rhs Right-hand side.
- * @return 0 on success.
+ * @param dst Destination time, result of the addition.
+ * @param lhs Left-hand side operand.
+ * @param rhs Right-hand side operand.
+ * @return 0 on success, -1 if any pointer is NULL.
  */
 int la_time_add(la_time_t *dst, const la_time_t *lhs, const la_time_t *rhs);
 
@@ -266,9 +286,19 @@ int la_time_sub(la_time_t *dst, const la_time_t *lhs, const la_time_t *rhs);
 /**
  * @brief Compare two @p la_time_t values.
  *
- * @param lhs Left-hand side.
- * @param rhs Right-hand side.
- * @return Negative if lhs < rhs, zero if equal, positive if lhs > rhs.
+ * Compares the two time values field by field from the largest unit
+ * to the smallest: day, hour, minute, second, and nanosecond.
+ * Both @p lhs and @p rhs must be non-NULL.
+ *
+ * @code
+ *    +-------+    +--------+    +----------+    +----------+    +--------------+
+ *    |  day  | => |  hour  | => |  minute  | => |  second  | => |  nanosecond  |
+ *    +-------+    +--------+    +----------+    +----------+    +--------------+
+ * @endcode
+ *
+ * @param lhs Left-hand side time value.
+ * @param rhs Right-hand side time value.
+ * @return -1 if lhs < rhs, 0 if lhs == rhs, 1 if lhs > rhs.
  */
 int la_time_cmp(const la_time_t *lhs, const la_time_t *rhs);
 

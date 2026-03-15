@@ -341,13 +341,136 @@ int la_time_conv(la_time_t *dst, const la_clock_t dst_clock_type, const la_time_
     return 0;
 }
 
-int la_time_normalize(la_time_t *xtp) {}
+int la_time_normalize(la_time_t *xtp) {
+    if (!xtp) {
+        return -1;
+    }
 
-int la_time_add(la_time_t *dst, const la_time_t *lhs, const la_time_t *rhs) {}
+    xtp->sec += xtp->nsec / LA_NS_PER_SEC;
+    xtp->nsec %= LA_NS_PER_SEC;
 
-int la_time_sub(la_time_t *dst, const la_time_t *lhs, const la_time_t *rhs) {}
+    if (xtp->nsec < 0) {
+        xtp->sec--;
+        xtp->nsec += LA_NS_PER_SEC;
+    }
 
-int la_time_cmp(const la_time_t *lhs, const la_time_t *rhs) {}
+    return 0;
+}
+
+int la_time_add(la_time_t *dst, const la_time_t *lhs, const la_time_t *rhs) {
+    if (!dst || !lhs || !rhs) {
+        return -1;
+    }
+
+    dst->nsec = lhs->nsec + rhs->nsec;
+    dst->sec  = lhs->sec  + rhs->sec;
+    dst->min  = lhs->min  + rhs->min;
+    dst->hour = lhs->hour + rhs->hour;
+    dst->day  = lhs->day  + rhs->day;
+
+    if (dst->nsec >= LA_NS_PER_SEC) {
+        dst->sec += dst->nsec / LA_NS_PER_SEC;
+        dst->nsec %= LA_NS_PER_SEC;
+    }
+
+    if (dst->sec >= LA_SEC_PER_MIN) {
+        dst->min += dst->sec / LA_SEC_PER_MIN;
+        dst->sec %= LA_SEC_PER_MIN;
+    }
+
+    if (dst->min >= LA_MIN_PER_HOUR) {
+        dst->hour += dst->min / LA_MIN_PER_HOUR;
+        dst->min %= LA_MIN_PER_HOUR;
+    }
+
+    if (dst->hour >= LA_HOUR_PER_DAY) {
+        dst->day += dst->hour / LA_HOUR_PER_DAY;
+        dst->hour %= LA_HOUR_PER_DAY;
+    }
+
+    return 0;
+}
+
+int la_time_sub(la_time_t *dst, const la_time_t *lhs, const la_time_t *rhs) {
+    if (!dst || !lhs || !rhs) {
+        return -1;
+    }
+
+    /*
+     * Ensure the result will not be negative.
+     * If rhs > lhs, subtraction cannot proceed.
+     */
+    if (la_time_cmp(lhs, rhs) < 0) {
+        return -1;
+    }
+
+    /*
+     * Borrow from the next larger unit if a field underflows:
+     *
+     *   nsec < 0  -> borrow 1 sec
+     *   sec  < 0  -> borrow 1 min
+     *   min  < 0  -> borrow 1 hour
+     *   hour < 0  -> borrow 1 day
+     *
+     * This ensures all fields remain in their canonical ranges:
+     * 0 <= nsec < 1e9, 0 <= sec < 60, 0 <= min < 60, 0 <= hour < 24
+     */
+    dst->nsec = lhs->nsec - rhs->nsec;
+    dst->sec  = lhs->sec  - rhs->sec;
+    dst->min  = lhs->min  - rhs->min;
+    dst->hour = lhs->hour - rhs->hour;
+    dst->day  = lhs->day  - rhs->day;
+
+    if (dst->nsec < 0) {
+        dst->sec--;
+        dst->nsec += LA_NS_PER_SEC;
+    }
+
+    if (dst->sec < 0) {
+        dst->min--;
+        dst->sec += LA_SEC_PER_MIN;
+    }
+
+    if (dst->min < 0) {
+        dst->hour--;
+        dst->min += LA_MIN_PER_HOUR;
+    }
+
+    if (dst->hour < 0) {
+        dst->day--;
+        dst->hour += LA_HOUR_PER_DAY;
+    }
+
+    return 0;
+}
+
+int la_time_cmp(const la_time_t *lhs, const la_time_t *rhs) {
+    if (!lhs || !rhs) {
+        return -1;
+    }
+
+    if (lhs->day != rhs->day) {
+        return (lhs->day < rhs->day) ? -1 : 1;
+    }
+
+    if (lhs->hour != rhs->hour) {
+        return (lhs->hour < rhs->hour) ? -1 : 1;
+    }
+
+    if (lhs->min != rhs->min) {
+        return (lhs->min < rhs->min) ? -1 : 1;
+    }
+
+    if (lhs->sec != rhs->sec) {
+        return (lhs->sec < rhs->sec) ? -1 : 1;
+    }
+
+    if (lhs->nsec != rhs->nsec) {
+        return (lhs->nsec < rhs->nsec) ? -1 : 1;
+    }
+
+    return 0;
+}
 
 uint64_t la_time_to_ns(const la_time_t *time) {}
 
