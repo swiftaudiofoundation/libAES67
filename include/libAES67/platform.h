@@ -42,7 +42,7 @@
 #define LIBAES67_PLATFORM_H
 
 #include <stdarg.h>
-#include <stdio.h>
+#include <_stdio.h>
 #include <stdlib.h>
 
 #ifdef __cplusplus

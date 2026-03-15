@@ -1,0 +1,87 @@
+name: Compliance Report
+description: Report a compliance issue with the AES67 specification or interoperability problems.
+title: "[Compliance]: <INSERT_TITLE>"
+labels: ["needs-triage", "type: compliance"]
+assignees:
+  - N3v1
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Compliance Report
+
+        Use this form to report issues related to AES67 spec violations, RTP/SDP formatting, clock sync problems, or interoperability with other AES67 implementations.
+
+  - type: input
+    id: test_environment
+    attributes:
+      label: Test Environment
+      description: Describe your test setup — OS, platform, audio interface, test tools.
+      placeholder: e.g. Ubuntu 22.04, Ravenna VM, Dante Virtual Soundcard
+    validations:
+      required: true
+
+  - type: input
+    id: external_device
+    attributes:
+      label: External Device or System
+      description: What system, hardware, or software are you testing interoperability with?
+      placeholder: e.g. Allen&Heath DLive, Waves LiveBox Dante, Dante AVIO, ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed_behavior
+    attributes:
+      label: Observed Behavior
+      description: What behavior indicates non-compliance or failure?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected Behavior
+      description: What behavior is expected according to the AES67 spec or other reference?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected_layer
+    attributes:
+      label: Affected Layer
+      description: Select the part of the stack that is non-compliant.
+      options:
+        - rtp
+        - sdp
+        - ptp
+        - clock-sync
+        - jitter
+        - api
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: Specification References
+      description: Link or cite relevant sections of AES67, SMPTE 2110, or RFCs.
+      placeholder: e.g. AES67 section 7.3.1, RFC 7273 §5.2
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional_notes
+    attributes:
+      label: Additional Notes
+      description: Any logs, waveform screenshots, test results, or context to help investigate.
+
+  - type: checkboxes
+    attributes:
+      label: Is there an existing issue for this?
+      description: Please search to see if an issue already exists for the feature you requested.
+      options:
+        - label: I have searched the existing issues
+    validations:
+      required: true

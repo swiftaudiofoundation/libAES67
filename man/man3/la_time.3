@@ -1,0 +1,106 @@
+.TH LA_TIME 3 "March 2026" "libAES67" "Library Functions Manual"
+.SH NAME
+.B la_time_get, la_time_getres, la_time_sleep, la_time_sleep_until,
+.B la_time_conv, la_time_normalize, la_time_add, la_time_sub, la_time_cmp,
+.B la_time_to_ns, la_time_from_ns, la_time_to_ptp, la_time_to_rtp,
+.B la_time_to_double, la_time_from_double, la_time_from_ptp
+\(em time and clock utilities for libAES67
+
+.SH LIBRARY
+libAES67 C Library (libAES67)
+
+.SH SYNOPSIS
+.nf
+.B #include <libAES67/time.h>
+
+.I int
+.BI "la_time_get(" "la_time_t *xtp, const la_clock_t clock_type" );
+
+.I int
+.BI "la_time_getres(" "la_time_t *res, const la_clock_t clock_type" );
+
+.I int
+.BI "la_time_sleep(" "const la_time_t *duration" );
+
+.I int
+.BI "la_time_sleep_until(" "const la_time_t *target, const la_clock_t clock_type" );
+
+.I int
+.BI "la_time_conv(" "la_time_t *dst, int dst_clock_type, const la_time_t *src, int src_clock_type" );
+
+.I int
+.BI "la_time_normalize(" "la_time_t *xtp" );
+
+.I int
+.BI "la_time_add(" "la_time_t *dst, const la_time_t *lhs, const la_time_t *rhs" );
+
+.I int
+.BI "la_time_sub(" "la_time_t *dst, const la_time_t *lhs, const la_time_t *rhs" );
+
+.I int
+.BI "la_time_cmp(" "const la_time_t *lhs, const la_time_t *rhs" );
+
+.I uint64_t
+.BI "la_time_to_ns(" "const la_time_t *time" );
+
+.I void
+.BI "la_time_from_ns(" "la_time_t *time, uint64_t ns" );
+
+.I uint64_t
+.BI "la_time_to_ptp(" "const la_time_t *time" );
+
+.I uint32_t
+.BI "la_time_to_rtp(" "const la_time_t *time, uint32_t rate" );
+
+.I double
+.BI "la_time_to_double(" "const la_time_t *time" );
+
+.I void
+.BI "la_time_from_double(" "la_time_t *time, double secs" );
+
+.I void
+.BI "la_time_from_ptp(" "la_time_t *time, uint64_t ptpns" );
+.fi
+
+.SH DESCRIPTION
+
+TODO
+
+.TP
+.B LA_CLOCK_UTC
+Coordinated Universal Time (UTC) counting non-leap seconds since the epoch.
+
+.TP
+.B LA_CLOCK_TAI
+International Atomic Time (TAI) counting continuous SI seconds.
+
+.TP
+.B LA_CLOCK_MONOTONIC
+Monotonic system clock unaffected by system time adjustments.
+
+.TP
+.B LA_CLOCK_PROCESS
+CPU time consumed by the current process.
+
+.TP
+.B LA_CLOCK_THREAD
+CPU time consumed by the current thread.
+
+.TP
+.B LA_CLOCK_PTP
+IEEE 1588-2002 Precision Time Protocol clock.
+
+.TP
+.B LA_CLOCK_PTPv2
+IEEE 1588-2008 Precision Time Protocol V2 clock.
+
+.SH EXAMPLES
+
+.SH SEE ALSO
+
+date(1), clock_gettime(2), la_ptp(3), la_time_conv(3), time(3)
+
+.SH STANDARDS
+
+IEEE 1588-2002, IEEE 1588-2008, POSIX.1-2008
+

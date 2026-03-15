@@ -1,0 +1,119 @@
+name: Proposal
+description: Suggest a new method, protocol, or API enhancement for libAES67.
+title: "[Proposal] SE-XXXXX: <Proposal Title>"
+labels: ["needs-triage", "type: feature"]
+assignees:
+  - N3v1
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Proposal
+
+        Thank you for contributing a proposal! Please provide enough detail so we can evaluate and discuss it thoroughly.
+
+  - type: input
+    id: proposal_title
+    attributes:
+      label: Proposal Title
+      description: Provide a short descriptive title for your proposal.
+      placeholder: Support for AES67 Multicast Routing
+    validations:
+      required: true
+
+  - type: input
+    id: proposal_id
+    attributes:
+      label: Proposal ID
+      description: Unique identifier for this proposal (e.g. SE-00001)
+      placeholder: SE-00001
+    validations:
+      required: true
+
+  - type: input
+    id: author
+    attributes:
+      label: Author
+      description: Your GitHub username or name.
+      placeholder: e.g. octocat
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why is this proposal needed? What problem does it solve or feature does it add?
+    validations:
+      required: true
+
+  - type: textarea
+    id: specification
+    attributes:
+      label: Specification
+      description: Describe the design, how it integrates with current methods, protocol details, or any new method signatures.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Affected Layer
+      description: Which part of libAES67 will this affect?
+      options:
+        - audio
+        - network
+        - clock-sync
+        - sdp
+        - api
+        - build
+        - platform
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative approaches and why you rejected them.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Will this change break backward compatibility? Affect performance? Require documentation?
+      placeholder: |
+        This proposal will not break backward compatibility but may require updates to existing documentation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Link to specs, RFCs, papers, or related issues.
+      placeholder: https://datatracker.ietf.org/doc/html/rfc3550
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional_notes
+    attributes:
+      label: Additional Notes
+      description: Any other information or context relevant to the proposal.
+      placeholder: |
+        This proposal is part of a larger effort to enhance AES67 interoperability.
+        Feedback is welcome and appreciated.
+    validations:
+      required: false
+
+  - type: checkboxes
+    attributes:
+      label: Is there an existing proposal for this?
+      description: Please search to see if an issue already exists for the feature you requested.
+      options:
+        - label: I have searched the existing proposals
+    validations:
+      required: true

@@ -1,0 +1,636 @@
+diff --git a/.clang-tidy b/.clang-tidy
+index 2cda687..f99f3f3 100644
+--- a/.clang-tidy
++++ b/.clang-tidy
+@@ -28,3 +28,5 @@ CheckOptions:
+     value: 'NULL'
+   - key: modernize-use-nullptr.NullptrT
+     value: 'nullptr'
++  - key: bugprone-reserved-identifier.AllowedIdentifiers
++    value: '__LA'
+diff --git a/.github/ISSUE_TEMPLATE/bug.yaml b/.github/ISSUE_TEMPLATE/bug.yaml
+index 1d0fecb..86d603f 100644
+--- a/.github/ISSUE_TEMPLATE/bug.yaml
++++ b/.github/ISSUE_TEMPLATE/bug.yaml
+@@ -2,7 +2,7 @@ name: Bug Report
+ description: Report a bug or unexpected behavior in libAES67.
+ title: "[BUG]: <INSERT_TITLE>"
+ labels: ["needs-triage", "type: bug"]
+-assignees: 
++assignees:
+   - N3v1
+ body:
+   - type: markdown
+@@ -19,7 +19,7 @@ body:
+     attributes:
+       label: Environment
+       description: OS version, architecture, and build tools
+-      placeholder: e.g. macOS 15.5, x86_64, GCC 13.1, CMake 3.29
++      placeholder: e.g. macOS 26.3, aarch64, GCC 13.1, CMake 4.1
+       value: |
+         - OS:
+         - Arch:
+@@ -43,6 +43,7 @@ body:
+         - api
+         - build
+         - platform
++        - other
+     validations:
+       required: true
+ 
+@@ -106,4 +107,4 @@ body:
+       options:
+         - label: I have searched the existing issues
+     validations:
+-      required: true
+\ No newline at end of file
++      required: true
+diff --git a/.github/ISSUE_TEMPLATE/compilance.yaml b/.github/ISSUE_TEMPLATE/compilance.yaml
+index 57d2ab0..9f6ec0b 100644
+--- a/.github/ISSUE_TEMPLATE/compilance.yaml
++++ b/.github/ISSUE_TEMPLATE/compilance.yaml
+@@ -26,7 +26,7 @@ body:
+     attributes:
+       label: External Device or System
+       description: What system, hardware, or software are you testing interoperability with?
+-      placeholder: e.g. Lawo R3LAY, Merging Hapi MkII, Axia xNode
++      placeholder: e.g. Allen&Heath DLive, Waves LiveBox Dante, Dante AVIO, ...
+     validations:
+       required: true
+ 
+@@ -84,4 +84,4 @@ body:
+       options:
+         - label: I have searched the existing issues
+     validations:
+-      required: true
+\ No newline at end of file
++      required: true
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0f3623b..3d7715e 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -41,6 +41,7 @@ project(libAES67 C CXX)
+ 
+ set(CMAKE_C_STANDARD 23)
+ set(CMAKE_C_STANDARD_REQUIRED ON)
++enable_testing()
+ 
+ option(BUILD_SHARED_LIBS "Build shared libraries instead of static ones" OFF)
+ 
+@@ -53,6 +54,8 @@ add_library(libAES67 STATIC libAES67.c
+         include/libAES67/__posix_tz.h
+ )
+ 
++target_include_directories(libAES67 PUBLIC include)
++
+ if (WIN32)
+     message(FATAL_ERROR "Windows builds are not supported yet.")
+ endif()
+diff --git a/README.md b/README.md
+index 0853c17..4edaebe 100644
+--- a/README.md
++++ b/README.md
+@@ -52,7 +52,7 @@ that the following conditions are met:
+ 
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ 
+-For more details, see the [LICENSE](./LICENSE) file included in this repository.
++For more details, see the [LICENSE](LICENSE) file included in this repository.
+ 
+ _© 2025 - 2026 Nevio Hirani and the libAES67 contributors._
+ 
+diff --git a/include/libAES67/__tai.h b/include/libAES67/__tai.h
+index 68160b1..a1ea8be 100644
+--- a/include/libAES67/__tai.h
++++ b/include/libAES67/__tai.h
+@@ -44,11 +44,15 @@
+ #ifndef LIBAES67___TAI_H
+ #define LIBAES67___TAI_H
+ 
++#ifndef LIBAES67_INTERNAL_INCLUDE
++#error "Do not include this header directly. Use <libAES67/time.h>."
++#endif
++
+ #include "platform.h"
+ 
+-#define LA_NS_PER_SEC 1000000000LL
+-#define LA_TAI_UTC_INITIAL_OFFSET 10
++#define LA_TAI_UTC_INITIAL_OFFSET        10
+ #define LA_EXPECTED_FINAL_TAI_UTC_OFFSET 37
++#define LA_NS_PER_SEC                    1000000000LL
+ 
+ __LA_BEGIN_C_DECLS
+ 
+@@ -192,4 +196,4 @@ LA_INLINE int64_t la_tai_ns_to_utc_ns(const int64_t tai_ns) {
+ 
+ __LA_END_C_DECLS
+ 
+-#endif //LIBAES67___TAI_H
++#endif /* LIBAES67___TAI_H */
+diff --git a/include/libAES67/endian.h b/include/libAES67/endian.h
+index aabe120..a15bd55 100644
+--- a/include/libAES67/endian.h
++++ b/include/libAES67/endian.h
+@@ -68,21 +68,6 @@
+ 
+ __LA_BEGIN_C_DECLS
+ 
+-// static inline uint16_t la_htobe16(uint16_t x) { return htobe16(x); }
+-// static inline uint16_t la_htole16(const uint16_t x) { return htole16(x); }
+-// static inline uint16_t la_be16toh(uint16_t x) { return be16toh(x); }
+-// static inline uint16_t la_le16toh(const uint16_t x) { return le16toh(x); }
+-//
+-// static inline uint32_t la_htobe32(uint32_t x) { return htobe32(x); }
+-// static inline uint32_t la_htole32(const uint32_t x) { return htole32(x); }
+-// static inline uint32_t la_be32toh(uint32_t x) { return be32toh(x); }
+-// static inline uint32_t la_le32toh(const uint32_t x) { return le32toh(x); }
+-//
+-// static inline uint64_t la_htobe64(uint64_t x) { return htobe64(x); }
+-// static inline uint64_t la_htole64(const uint64_t x) { return htole64(x); }
+-// static inline uint64_t la_be64toh(uint64_t x) { return be64toh(x); }
+-// static inline uint64_t la_le64toh(const uint64_t x) { return le64toh(x); }
+-
+ /*
+  * Prefer compiler built-ins for byte-swapping whenever available to
+  * improve performance. Falls back to portable implementation if builtin
+diff --git a/include/libAES67/platform.h b/include/libAES67/platform.h
+index f82a80f..9fb049f 100644
+--- a/include/libAES67/platform.h
++++ b/include/libAES67/platform.h
+@@ -42,7 +42,7 @@
+ #define LIBAES67_PLATFORM_H
+ 
+ #include <stdarg.h>
+-#include <stdio.h>
++#include <_stdio.h>
+ #include <stdlib.h>
+ 
+ #ifdef __cplusplus
+diff --git a/include/libAES67/time.h b/include/libAES67/time.h
+index 82c2add..e86b6d1 100644
+--- a/include/libAES67/time.h
++++ b/include/libAES67/time.h
+@@ -39,7 +39,7 @@
+  */
+ 
+ /*
+- * Implementation inspired by the time interface proposed by
++ * Definition inspired by the time interface proposed by
+  * Markus Kuhn, University of Cambridge Computer Laboratory:
+  *
+  *   <https://www.cl.cam.ac.uk/~mgk25/time/c/>
+@@ -48,10 +48,14 @@
+ #ifndef LIBAES67_TIME_H
+ #define LIBAES67_TIME_H
+ 
++#define LIBAES67_INTERNAL_INCLUDE 1
++
+ #include <stdint.h>
++
+ #include "platform.h"
++#include "__tai.h"
+ 
+-#define LA_NSEC_PER_SEC    1000000000L
++#define LA_NS_PER_SEC  1000000000LL
+ 
+ /**
+  * @def LA_CLOCK_1588
+@@ -90,6 +94,7 @@ typedef struct {
+     int_fast32_t nsec;
+ } la_time_t;
+ 
++// TODO: Add CLOCK_BOOTTIME => CLOCK_UPTIME, CLOCK_MONOTONIC_COARSE => MONOTONIC_RAW
+ /**
+  * @enum la_clock_t
+  * @brief Enumeration of supported clock sources.
+@@ -149,30 +154,6 @@ typedef enum {
+     LA_CLOCK_PTPv2
+ } la_clock_t;
+ 
+-typedef struct {
+-    int offset_sec;   /**< Offset in seconds from UTC. */
+-    int is_dst;       /**< Non-zero if daylight saving is in effect, 0 otherwise. */
+-    const char *name; /**< Name of the timezone (e.g., "UTC", "CET"). */
+-
+-    /* POSIX DST INFO */
+-    int dst_offset_sec;    /**< Offset for DST (typically +3600s) */
+-    int dst_start_month;   /**< DST start month 1-12 */
+-    int dst_start_week;    /**< DST start week 1-5 (-1 = last week) */
+-    int dst_start_weekday; /**< DST start weekday 0-6 (Sun=0) */
+-    int dst_start_hour;    /**< DST start hour 0-23 */
+-    int dst_start_seconds;
+-
+-    int dst_end_month;     /**< DST end month 1-12 */
+-    int dst_end_week;      /**< DST end week 1-5 (-1 = last week) */
+-    int dst_end_weekday;   /**< DST end weekday 0-6 (Sun=0) */
+-    int dst_end_hour;      /**< DST end hour 0-23 */
+-    int dst_end_seconds;
+-
+-    int error_code;
+-    char *error_message;
+-} la_timezone_t;
+-
+-// TODO: Potentially refactor to ptp.h
+ /**
+  * @struct la_ptp_time_t
+  * @brief Represents PTP-specific time with fractional nanoseconds.
+@@ -236,82 +217,6 @@ int la_time_sleep(const la_time_t *duration);
+  */
+ int la_time_sleep_until(const la_time_t *target, la_clock_t clock_type);
+ 
+-/**
+- * @brief Prepare a timezone object for time conversion.
+- *
+- * @param timezone Pointer to timezone object pointer (allocated by function).
+- * @param tzstring ISO/IEC 9945-1:1996 (POSIX.1) section 8.1.1 timezone identifier
+- *                 (e.g., "CET-1CEST,M3.5.0/2,M10.5.0/3" or "Europe/Paris").
+- * @return On success, the function shall set *tz to the address of the allocated
+- *         `la_timezone_t` data structure and shall return 0. If there was a failure
+- *         during memory allocation, the function shall set `*tz == NULL` and shall return -1.
+- *         If there was a problem with interpreting `tzstring`, the function shall set
+- *         `*tz` to the address of the allocated `timezone_t` data structure, shall then
+- *         write into `**tz` further information about the cause of the problem for
+- *         evaluation by `la_tz_error`, and shall return 1.
+- *
+- * Allocate memory for and create the in-memory representation of the timezone
+- * specified in `tzstring`. This standard does not specify the syntax of the timezone
+- * description in `tzstring`. If `tzstring == NULL`, then some externally defined default
+- * timezone shall be used.
+- */
+-int la_tz_prep(la_timezone_t **timezone, const char *tzstring);
+-
+-/**
+- * @brief
+- *
+- * @param timezone Pointer to timezone object.
+- * @returns A pointer to a zero-terminated text string that contains a message.
+- *
+- * After `la_tz_prep` has signalled an error by returning another value than 0, this function can
+- * be used to generate a readable error message about the cause of the problem by looking at the
+- * `la_timezone_t` value allocated by `la_tz_prep`. If `tz == NULL` or if no error has occurred,
+- * then this shall also be indicated by an appropriate message. The language used in the message
+- * should depend on the locale. The implementation is free to arbitrarily select between the locale
+- * that was active at the time of the call to `la_tz_prep` or that active when this function is called.
+- */
+-char *la_tz_error(la_timezone_t *timezone);
+-
+-/**
+- * @brief Deallocates the timezone_t data structure that was allocated before by a `la_tz_prep`
+- *        call which returned with a non-negative value.
+- *
+- * @param timezone Pointer to timezone object to free.
+- * @returns A pointer to a zero-terminated text string that contains a message.
+- */
+-void la_tz_free(la_timezone_t *timezone);
+-
+-/**
+- * @brief Converts a broken-down time to la_time_t.
+- *
+- * @param xtp Output time structure.
+- * @param tmptr Input broken-down time (struct tm).
+- * @param timezone Optional timezone to apply.
+- * @return 0 on success, -1 and *xtp undefined on error.
+- *
+- * Interprets the broken-down time in `*tmptr` as a local time in the timezone
+- * specified in `*tz` and writes the corresponding value of the `LA_CLOCK_UTC`
+- * clock type into `*xtp`. If `tz == NULL` then the `*tmptr` values are
+- * interpreted in UTC on the Gregorian calendar. Since struct `tm` provides
+- * only second resolution, the function sets `xtp->nsec = 0` or in case
+- * `tmptr->tm_sec == 60` then it sets `xtp->nsec = 1_000_000_000`.
+- */
+-int la_time_make(la_time_t *xtp, const struct tm *tmptr, const la_timezone_t *timezone);
+-
+-/**
+- * @brief Convert la_time_t to a broken-down time.
+- *
+- * @param tmptr Output struct tm.
+- * @param xtp Input la_time_t.
+- * @param timezone Optional timezone.
+- * @return 0 on success, -1 and *tmptr undefined on error.
+- *
+- * Interprets the value in `*xtp` as a `LA_CLOCK_UTC` clock type value and writes the
+- * corresponding broken-down local time in the timezone specified in `*tz` into `*tmptr`.
+- * If `tz == NULL` then the written `*tmptr` values are in UTC.
+- */
+-int la_time_breakup(struct tm *tmptr, const la_time_t *xtp, const la_timezone_t *timezone);
+-
+ /**
+  * @brief Convert time between different clocks.
+  *
+@@ -329,33 +234,6 @@ int la_time_breakup(struct tm *tmptr, const la_time_t *xtp, const la_timezone_t
+  */
+ int la_time_conv(la_time_t *dst, int dst_clock_type, const la_time_t *src, int src_clock_type);
+ 
+-/**
+- * @brief Format time into a human-readable string.
+- *
+- * @param s Output buffer.
+- * @param maxsize Buffer size.
+- * @param format strftime-style format string.
+- * @param xtp Input time.
+- * @param timezone Optional timezone.
+- * @return If the total number of resulting characters including the terminating
+- *         null character is not more than maxsize, the @p la_strftime function returns the
+- *         number of characters placed into the array pointed to by s not including the
+- *         terminating null character. Otherwise, zero is returned and the contents of the
+- *         array are indeterminate.
+- *
+- * The @p la_strfxtime function places characters into the array pointed to by @p s
+- * according to the format string pointed to by @p format, using the time
+- * information in @p timeptr. It supports all standard strftime() conversion
+- * specifiers, with additional extensions for fractional time and ISO 8601
+- * timezone formats.
+- *
+- * Ordinary multibyte characters in the format string are copied unchanged.
+- * The output is limited to @p maxsize characters. Behavior is undefined if
+- * copying occurs between overlapping objects.
+- */
+-size_t la_strfxtime(char* restrict s, size_t maxsize, const char* restrict format,
+-                    const la_time_t *xtp, const la_timezone_t *timezone);
+-
+ /**
+  * @brief Normalize a @p la_time_t so that nsec is within 0..999,999,999.
+  *
+@@ -452,4 +330,6 @@ void la_time_from_ptp(la_time_t *time, uint64_t ptpns);
+ 
+ __LA_END_C_DECLS
+ 
++#undef LIBAES67_INTERNAL_INCLUDE
++
+ #endif /* LIBAES67_TIME_H */
+diff --git a/man/man3/la_time.3 b/man/man3/la_time.3
+index 479d7b5..67dbd47 100644
+--- a/man/man3/la_time.3
++++ b/man/man3/la_time.3
+@@ -1,9 +1,9 @@
+ .TH LA_TIME 3 "March 2026" "libAES67" "Library Functions Manual"
+ .SH NAME
+-.B la_time_get, la_time_getres, la_time_sleep, la_time_sleep_until, la_tz_prep,
+-.B la_tz_error, la_tz_free, la_time_make, la_time_breakup, la_time_conv, la_strfxtime,
+-.B la_time_normalize, la_time_add, la_time_sub, la_time_cmp, la_time_to_ns, la_time_from_ns,
+-.B la_time_to_ptp, la_time_to_rtp, la_time_to_double, la_time_from_double, la_time_from_ptp
++.B la_time_get, la_time_getres, la_time_sleep, la_time_sleep_until,
++.B la_time_conv, la_time_normalize, la_time_add, la_time_sub, la_time_cmp,
++.B la_time_to_ns, la_time_from_ns, la_time_to_ptp, la_time_to_rtp,
++.B la_time_to_double, la_time_from_double, la_time_from_ptp
+ \(em time and clock utilities for libAES67
+ 
+ .SH LIBRARY
+@@ -25,27 +25,9 @@ libAES67 C Library (libAES67)
+ .I int
+ .BI "la_time_sleep_until(" "const la_time_t *target, const la_clock_t clock_type" );
+ 
+-.I int
+-.BI "la_tz_prep(" "la_timezone_t **timezone, const char *tzstring" );
+-
+-.I char *
+-.BI "la_tz_error(" "la_timezone_t *timezone ");
+-
+-.I void
+-.BI "la_tz_free(" "la_timezone_t *timezone ");
+-
+-.I int
+-.BI "la_time_make(" "la_time_t *xtp, const struct tm *tmptr, const la_timezone_t *timezone" );
+-
+-.I int
+-.BI "la_time_breakup(" "struct tm *tmptr, const la_time_t *xtp, const la_timezone_t *timezone" );
+-
+ .I int
+ .BI "la_time_conv(" "la_time_t *dst, int dst_clock_type, const la_time_t *src, int src_clock_type" );
+ 
+-.I size_t
+-.BI "la_strfxtime(" "char* restrict s, size_t maxsize, const char* restrict format, const la_time_t *xtp, const la_timezone_t *timezone" );
+-
+ .I int
+ .BI "la_time_normalize(" "la_time_t *xtp" );
+ 
+@@ -121,3 +103,4 @@ date(1), clock_gettime(2), la_ptp(3), la_time_conv(3), time(3)
+ .SH STANDARDS
+ 
+ IEEE 1588-2002, IEEE 1588-2008, POSIX.1-2008
++
+diff --git a/src/time.c b/src/time.c
+index 9ef2335..025dead 100644
+--- a/src/time.c
++++ b/src/time.c
+@@ -40,13 +40,14 @@
+ 
+ #include <time.h>
+ #include <errno.h>
+-#include <stdlib.h>
+ #include <_string.h>
+-#include <locale.h>
+ 
+ #include "../include/libAES67/time.h"
+-#include "../include/libAES67/__tai.h"
+-#include "../include/libAES67/__posix_tz.h"
++
++LA_INLINE void la_normalize_timespec(struct timespec *ts) {
++    ts->tv_sec += ts->tv_nsec / LA_NS_PER_SEC;
++    ts->tv_nsec %= LA_NS_PER_SEC;
++}
+ 
+ int la_time_get(la_time_t *xtp, const la_clock_t clock_type) {
+     if (!xtp) { return -1; }
+@@ -62,7 +63,6 @@ int la_time_get(la_time_t *xtp, const la_clock_t clock_type) {
+             #ifdef CLOCK_TAI
+                 if (clock_gettime(CLOCK_TAI, &ts) != 0) { return -1; }
+             #else
+-                // TODO: Refactor
+                 /*
+                  * Simulate TAI on platforms without CLOCK_TAI (e.g., macOS).
+                  * Read UTC via CLOCK_REALTIME and compute TAI using leap second table <__tai.h>.
+@@ -124,7 +124,6 @@ int la_time_getres(la_time_t *res, const la_clock_t clock_type) {
+             #ifdef CLOCK_TAI
+                 if (clock_getres(CLOCK_TAI, &ts)  != 0) { return -1; }
+             #else
+-                // FIXME: Refactor in reusable func with la_time_get
+                 /*
+                  * Simulate TAI resolution on platforms without CLOCK_TAI (e.g., macOS).
+                  *
+@@ -192,10 +191,7 @@ int la_time_sleep(const la_time_t *duration) {
+     req.tv_nsec = (long)(duration->nsec);
+ 
+     /* Normalize duration to ensure tv_nsec < 1e9 */
+-    if (req.tv_nsec >= LA_NS_PER_SEC) {
+-        req.tv_sec += req.tv_nsec / LA_NS_PER_SEC;
+-        req.tv_nsec %= LA_NS_PER_SEC;
+-    }
++    la_normalize_timespec(&req);
+ 
+     while (nanosleep(&req, &rem) != 0) {
+         if (errno != EINTR) {
+@@ -213,11 +209,11 @@ int la_time_sleep_until(const la_time_t *target, const la_clock_t clock_type) {
+     la_time_t now;
+     if (la_time_get(&now, clock_type) != 0) { return -1; }
+ 
+-    int64_t delta_sec  = target->sec - now.sec;
+-    int64_t delta_nsec = target->nsec - now.nsec;
++    int_fast64_t delta_sec  = target->sec - now.sec;
++    int_fast64_t delta_nsec = (int_fast64_t)target->nsec - now.nsec;
+ 
+     if (delta_nsec < 0) {
+-        delta_sec -= 1;
++        delta_sec  -= 1;
+         delta_nsec += LA_NS_PER_SEC;
+     }
+ 
+@@ -229,14 +225,11 @@ int la_time_sleep_until(const la_time_t *target, const la_clock_t clock_type) {
+     struct timespec req;
+     struct timespec rem;
+ 
+-    req.tv_sec = delta_sec;
++    req.tv_sec  = (time_t)delta_sec;
+     req.tv_nsec = (long)delta_nsec;
+ 
+     /* Normalize duration to ensure tv_nsec < 1e9 */
+-    if (req.tv_nsec >= LA_NS_PER_SEC) {
+-        req.tv_sec += req.tv_nsec / LA_NS_PER_SEC;
+-        req.tv_nsec %= LA_NS_PER_SEC;
+-    }
++    la_normalize_timespec(&req);
+ 
+     while (nanosleep(&req, &rem) != 0) {
+         if (errno != EINTR) {
+@@ -248,102 +241,63 @@ int la_time_sleep_until(const la_time_t *target, const la_clock_t clock_type) {
+     return 0;
+ }
+ 
+-int la_tz_prep(la_timezone_t **timezone, const char *tzstring) {
+-    if (!timezone) { return -1; }
+-    *timezone = NULL;
++// TODO: Implement conversions
++int la_time_conv(la_time_t *dst, int dst_clock_type, const la_time_t *src, int src_clock_type) {
++    if (!dst || !src) { return -1; }
+ 
+-    la_timezone_t *tz = calloc(1, sizeof(la_timezone_t));
+-    if (!tz) { return -1; }
++    if (dst_clock_type == src_clock_type) {
++        *dst = *src;
++        return 0;
++    }
+ 
+-    tz->error_code = 0;
+-    tz->error_message = NULL;
++    int64_t ns = ((int64_t)src->sec * LA_NS_PER_SEC) + src->nsec;
++    switch (src_clock_type) {
++        case LA_CLOCK_UTC:
++            break;
+ 
+-    if (!tzstring || tzstring[0] == '\0') { tzstring = "UTC"; }
++        case LA_CLOCK_TAI:
++            break;
+ 
+-    /* IANA TIMEZONE */
+-    if (strchr(tzstring, '/')) {
+-        setenv("TZ", tzstring, 1);
+-        tzset();
++        case LA_CLOCK_MONOTONIC:
++        case LA_CLOCK_PROCESS:
++        case LA_CLOCK_THREAD:
++            break;
+ 
+-        const time_t now = time(NULL);
+-        struct tm local_tm;
+-        struct tm utc_tm;
+-        localtime_r(&now, &local_tm);
+-        gmtime_r(&now, &utc_tm);
++        case LA_CLOCK_PTP:
++        case LA_CLOCK_PTPv2:
++            break;
+ 
+-        tz->offset_sec = (int)difftime(mktime(&local_tm), mktime(&utc_tm));
+-        tz->is_dst = local_tm.tm_isdst > 0 ? 1 : 0;
+-        tz->name = strdup(tzname[local_tm.tm_isdst ? 1 : 0]);
+-        if (!tz->name) {
+-            tz->error_code = 1;
+-            tz->error_message = strdup("Failed to allocate memory for timezone name");
+-            free(tz);
+-            return -1;
+-        }
+-    } else {
+-        if (__la_parse_posix_tz(tz, tzstring) != 0) {
+-            la_tz_free(tz);
++        default:
+             return -1;
+-        }
+-    }
+-
+-    *timezone = tz;
+-    return 0;
+-}
+-
+-char *la_tz_error(la_timezone_t *timezone) {
+-    const char *locale = setlocale(LC_ALL, NULL);
+-
+-    if (!timezone) {
+-        return strdup("Timezone object is NULL. Could not allocate or prepare.");
+     }
+ 
+-    if (timezone->error_message) {
+-        char *msg = NULL;
+-        la_xasprintf(&msg, "Timezone error (code %d): %s. Locale: %s",
+-                 timezone->error_code,
+-                 timezone->error_message,
+-                 locale ? locale : "C");
+-        return msg;
+-    }
++    switch (dst_clock_type) {
++        case LA_CLOCK_UTC:
++            break;
+ 
+-    if (!timezone->name || timezone->name[0] == '\0') {
+-        char *msg = NULL;
+-        la_xasprintf(&msg, "Timezone preparation failed. Invalid or empty TZ string. Locale: %s",
+-                 locale ? locale : "C");
+-        return msg;
+-    }
++        case LA_CLOCK_TAI:
++            break;
+ 
+-    char *msg = NULL;
+-    la_xasprintf(&msg, "No error. Timezone: %s", timezone->name);
+-    return msg;
+-}
++        case LA_CLOCK_MONOTONIC:
++        case LA_CLOCK_PROCESS:
++        case LA_CLOCK_THREAD:
++            return -1;
+ 
+-void la_tz_free(la_timezone_t *timezone) {
+-    if (!timezone) { return; }
++        case LA_CLOCK_PTP:
++        case LA_CLOCK_PTPv2:
++            return 0;
+ 
+-    if (timezone->name) {
+-        free((void*)timezone->name);
+-        timezone->name = NULL;
++        default:
++            return -1;
+     }
+ 
+-    if (timezone->error_message) {
+-        free((void*)timezone->error_message);
+-        timezone->error_message = NULL;
+-    }
++    dst->sec = ns / LA_NS_PER_SEC;
++    dst->nsec = (int_fast32_t)(ns % LA_NS_PER_SEC);
++    la_time_normalize(dst);
+ 
+-    free(timezone);
++    return 0;
+ }
+ 
+-int la_time_make(la_time_t *xtp, const struct tm *tmptr, const la_timezone_t *timezone) {}
+-
+-int la_time_breakup(struct tm *tmptr, const la_time_t *xtp, const la_timezone_t *timezone) {}
+-
+-int la_time_conv(la_time_t *dst, int dst_clock_type, const la_time_t *src, int src_clock_type) {}
+-
+-size_t la_strfxtime(char* restrict s, size_t maxsize, const char* restrict format,
+-                    const la_time_t *xtp, const la_timezone_t *timezone) {}
+-
+ int la_time_normalize(la_time_t *xtp) {}
+ 
+ int la_time_add(la_time_t *dst, const la_time_t *lhs, const la_time_t *rhs) {}

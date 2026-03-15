@@ -28,3 +28,5 @@ CheckOptions:
     value: 'NULL'
   - key: modernize-use-nullptr.NullptrT
     value: 'nullptr'
+  - key: bugprone-reserved-identifier.AllowedIdentifiers
+    value: '__LA'

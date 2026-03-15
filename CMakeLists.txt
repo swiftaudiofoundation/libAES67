@@ -41,6 +41,7 @@ project(libAES67 C CXX)
 
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
+enable_testing()
 
 option(BUILD_SHARED_LIBS "Build shared libraries instead of static ones" OFF)
 
@@ -52,6 +53,8 @@ add_library(libAES67 STATIC libAES67.c
         include/libAES67/__tai.h
         include/libAES67/__posix_tz.h
 )
+
+target_include_directories(libAES67 PUBLIC include)
 
 if (WIN32)
     message(FATAL_ERROR "Windows builds are not supported yet.")

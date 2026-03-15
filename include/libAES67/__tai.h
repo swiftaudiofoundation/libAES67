@@ -44,11 +44,15 @@
 #ifndef LIBAES67___TAI_H
 #define LIBAES67___TAI_H
 
+#ifndef LIBAES67_INTERNAL_INCLUDE
+#error "Do not include this header directly. Use <libAES67/time.h>."
+#endif
+
 #include "platform.h"
 
-#define LA_NS_PER_SEC 1000000000LL
-#define LA_TAI_UTC_INITIAL_OFFSET 10
+#define LA_TAI_UTC_INITIAL_OFFSET        10
 #define LA_EXPECTED_FINAL_TAI_UTC_OFFSET 37
+#define LA_NS_PER_SEC                    1000000000LL
 
 __LA_BEGIN_C_DECLS
 
@@ -192,4 +196,4 @@ LA_INLINE int64_t la_tai_ns_to_utc_ns(const int64_t tai_ns) {
 
 __LA_END_C_DECLS
 
-#endif //LIBAES67___TAI_H
+#endif /* LIBAES67___TAI_H */

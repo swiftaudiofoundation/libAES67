@@ -40,13 +40,14 @@
 
 #include <time.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <_string.h>
-#include <locale.h>
 
 #include "../include/libAES67/time.h"
-#include "../include/libAES67/__tai.h"
-#include "../include/libAES67/__posix_tz.h"
+
+LA_INLINE void la_normalize_timespec(struct timespec *ts) {
+    ts->tv_sec += ts->tv_nsec / LA_NS_PER_SEC;
+    ts->tv_nsec %= LA_NS_PER_SEC;
+}
 
 int la_time_get(la_time_t *xtp, const la_clock_t clock_type) {
     if (!xtp) { return -1; }
@@ -62,7 +63,6 @@ int la_time_get(la_time_t *xtp, const la_clock_t clock_type) {
             #ifdef CLOCK_TAI
                 if (clock_gettime(CLOCK_TAI, &ts) != 0) { return -1; }
             #else
-                // TODO: Refactor
                 /*
                  * Simulate TAI on platforms without CLOCK_TAI (e.g., macOS).
                  * Read UTC via CLOCK_REALTIME and compute TAI using leap second table <__tai.h>.
@@ -124,7 +124,6 @@ int la_time_getres(la_time_t *res, const la_clock_t clock_type) {
             #ifdef CLOCK_TAI
                 if (clock_getres(CLOCK_TAI, &ts)  != 0) { return -1; }
             #else
-                // FIXME: Refactor in reusable func with la_time_get
                 /*
                  * Simulate TAI resolution on platforms without CLOCK_TAI (e.g., macOS).
                  *
@@ -192,10 +191,7 @@ int la_time_sleep(const la_time_t *duration) {
     req.tv_nsec = (long)(duration->nsec);
 
     /* Normalize duration to ensure tv_nsec < 1e9 */
-    if (req.tv_nsec >= LA_NS_PER_SEC) {
-        req.tv_sec += req.tv_nsec / LA_NS_PER_SEC;
-        req.tv_nsec %= LA_NS_PER_SEC;
-    }
+    la_normalize_timespec(&req);
 
     while (nanosleep(&req, &rem) != 0) {
         if (errno != EINTR) {
@@ -213,11 +209,11 @@ int la_time_sleep_until(const la_time_t *target, const la_clock_t clock_type) {
     la_time_t now;
     if (la_time_get(&now, clock_type) != 0) { return -1; }
 
-    int64_t delta_sec  = target->sec - now.sec;
-    int64_t delta_nsec = target->nsec - now.nsec;
+    int_fast64_t delta_sec  = target->sec - now.sec;
+    int_fast64_t delta_nsec = (int_fast64_t)target->nsec - now.nsec;
 
     if (delta_nsec < 0) {
-        delta_sec -= 1;
+        delta_sec  -= 1;
         delta_nsec += LA_NS_PER_SEC;
     }
 
@@ -229,14 +225,11 @@ int la_time_sleep_until(const la_time_t *target, const la_clock_t clock_type) {
     struct timespec req;
     struct timespec rem;
 
-    req.tv_sec = delta_sec;
+    req.tv_sec  = (time_t)delta_sec;
     req.tv_nsec = (long)delta_nsec;
 
     /* Normalize duration to ensure tv_nsec < 1e9 */
-    if (req.tv_nsec >= LA_NS_PER_SEC) {
-        req.tv_sec += req.tv_nsec / LA_NS_PER_SEC;
-        req.tv_nsec %= LA_NS_PER_SEC;
-    }
+    la_normalize_timespec(&req);
 
     while (nanosleep(&req, &rem) != 0) {
         if (errno != EINTR) {
@@ -248,101 +241,62 @@ int la_time_sleep_until(const la_time_t *target, const la_clock_t clock_type) {
     return 0;
 }
 
-int la_tz_prep(la_timezone_t **timezone, const char *tzstring) {
-    if (!timezone) { return -1; }
-    *timezone = NULL;
+// TODO: Implement conversions
+int la_time_conv(la_time_t *dst, int dst_clock_type, const la_time_t *src, int src_clock_type) {
+    if (!dst || !src) { return -1; }
 
-    la_timezone_t *tz = calloc(1, sizeof(la_timezone_t));
-    if (!tz) { return -1; }
-
-    tz->error_code = 0;
-    tz->error_message = NULL;
-
-    if (!tzstring || tzstring[0] == '\0') { tzstring = "UTC"; }
-
-    /* IANA TIMEZONE */
-    if (strchr(tzstring, '/')) {
-        setenv("TZ", tzstring, 1);
-        tzset();
-
-        const time_t now = time(NULL);
-        struct tm local_tm;
-        struct tm utc_tm;
-        localtime_r(&now, &local_tm);
-        gmtime_r(&now, &utc_tm);
-
-        tz->offset_sec = (int)difftime(mktime(&local_tm), mktime(&utc_tm));
-        tz->is_dst = local_tm.tm_isdst > 0 ? 1 : 0;
-        tz->name = strdup(tzname[local_tm.tm_isdst ? 1 : 0]);
-        if (!tz->name) {
-            tz->error_code = 1;
-            tz->error_message = strdup("Failed to allocate memory for timezone name");
-            free(tz);
-            return -1;
-        }
-    } else {
-        if (__la_parse_posix_tz(tz, tzstring) != 0) {
-            la_tz_free(tz);
-            return -1;
-        }
+    if (dst_clock_type == src_clock_type) {
+        *dst = *src;
+        return 0;
     }
 
-    *timezone = tz;
+    int64_t ns = ((int64_t)src->sec * LA_NS_PER_SEC) + src->nsec;
+    switch (src_clock_type) {
+        case LA_CLOCK_UTC:
+            break;
+
+        case LA_CLOCK_TAI:
+            break;
+
+        case LA_CLOCK_MONOTONIC:
+        case LA_CLOCK_PROCESS:
+        case LA_CLOCK_THREAD:
+            break;
+
+        case LA_CLOCK_PTP:
+        case LA_CLOCK_PTPv2:
+            break;
+
+        default:
+            return -1;
+    }
+
+    switch (dst_clock_type) {
+        case LA_CLOCK_UTC:
+            break;
+
+        case LA_CLOCK_TAI:
+            break;
+
+        case LA_CLOCK_MONOTONIC:
+        case LA_CLOCK_PROCESS:
+        case LA_CLOCK_THREAD:
+            return -1;
+
+        case LA_CLOCK_PTP:
+        case LA_CLOCK_PTPv2:
+            return 0;
+
+        default:
+            return -1;
+    }
+
+    dst->sec = ns / LA_NS_PER_SEC;
+    dst->nsec = (int_fast32_t)(ns % LA_NS_PER_SEC);
+    la_time_normalize(dst);
+
     return 0;
 }
-
-char *la_tz_error(la_timezone_t *timezone) {
-    const char *locale = setlocale(LC_ALL, NULL);
-
-    if (!timezone) {
-        return strdup("Timezone object is NULL. Could not allocate or prepare.");
-    }
-
-    if (timezone->error_message) {
-        char *msg = NULL;
-        la_xasprintf(&msg, "Timezone error (code %d): %s. Locale: %s",
-                 timezone->error_code,
-                 timezone->error_message,
-                 locale ? locale : "C");
-        return msg;
-    }
-
-    if (!timezone->name || timezone->name[0] == '\0') {
-        char *msg = NULL;
-        la_xasprintf(&msg, "Timezone preparation failed. Invalid or empty TZ string. Locale: %s",
-                 locale ? locale : "C");
-        return msg;
-    }
-
-    char *msg = NULL;
-    la_xasprintf(&msg, "No error. Timezone: %s", timezone->name);
-    return msg;
-}
-
-void la_tz_free(la_timezone_t *timezone) {
-    if (!timezone) { return; }
-
-    if (timezone->name) {
-        free((void*)timezone->name);
-        timezone->name = NULL;
-    }
-
-    if (timezone->error_message) {
-        free((void*)timezone->error_message);
-        timezone->error_message = NULL;
-    }
-
-    free(timezone);
-}
-
-int la_time_make(la_time_t *xtp, const struct tm *tmptr, const la_timezone_t *timezone) {}
-
-int la_time_breakup(struct tm *tmptr, const la_time_t *xtp, const la_timezone_t *timezone) {}
-
-int la_time_conv(la_time_t *dst, int dst_clock_type, const la_time_t *src, int src_clock_type) {}
-
-size_t la_strfxtime(char* restrict s, size_t maxsize, const char* restrict format,
-                    const la_time_t *xtp, const la_timezone_t *timezone) {}
 
 int la_time_normalize(la_time_t *xtp) {}
 

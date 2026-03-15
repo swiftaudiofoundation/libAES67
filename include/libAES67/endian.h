@@ -68,21 +68,6 @@
 
 __LA_BEGIN_C_DECLS
 
-// static inline uint16_t la_htobe16(uint16_t x) { return htobe16(x); }
-// static inline uint16_t la_htole16(const uint16_t x) { return htole16(x); }
-// static inline uint16_t la_be16toh(uint16_t x) { return be16toh(x); }
-// static inline uint16_t la_le16toh(const uint16_t x) { return le16toh(x); }
-//
-// static inline uint32_t la_htobe32(uint32_t x) { return htobe32(x); }
-// static inline uint32_t la_htole32(const uint32_t x) { return htole32(x); }
-// static inline uint32_t la_be32toh(uint32_t x) { return be32toh(x); }
-// static inline uint32_t la_le32toh(const uint32_t x) { return le32toh(x); }
-//
-// static inline uint64_t la_htobe64(uint64_t x) { return htobe64(x); }
-// static inline uint64_t la_htole64(const uint64_t x) { return htole64(x); }
-// static inline uint64_t la_be64toh(uint64_t x) { return be64toh(x); }
-// static inline uint64_t la_le64toh(const uint64_t x) { return le64toh(x); }
-
 /*
  * Prefer compiler built-ins for byte-swapping whenever available to
  * improve performance. Falls back to portable implementation if builtin
