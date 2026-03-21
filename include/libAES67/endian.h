@@ -41,6 +41,10 @@
 #ifndef LIBAES67_ENDIAN_H
 #define LIBAES67_ENDIAN_H
 
+#idndef LIBAES67_INTERNAL_INCLUDE
+#error "Do not include this header directly."
+#endif
+
 #include <stdint.h>
 
 #define LA_LITTLE_ENDIAN 1234

@@ -472,7 +472,11 @@ int la_time_cmp(const la_time_t *lhs, const la_time_t *rhs) {
     return 0;
 }
 
-uint64_t la_time_to_ns(const la_time_t *time) {}
+uint64_t la_time_to_ns(const la_time_t *time) {
+    if (!time) { return -1; }
+
+
+}
 
 void la_time_from_ns(la_time_t *time, uint64_t ns) {}
 

@@ -64,7 +64,34 @@ libAES67 C Library (libAES67)
 
 .SH DESCRIPTION
 
-TODO
+The functions in this interface operate on objects of type \fBla_time_t\fR,
+which represent time relative to a reference epoch.  A time value consists
+of a count of seconds and nanoseconds together with additional fields for
+minutes, hours, and days.
+
+Time values are represented by:
+
+.nf
+typedef struct {
+    int_fast64_t sec;
+    int_fast32_t nsec;
+    int_fast32_t min;
+    int_fast32_t hour;
+    int_fast32_t day;
+} la_time_t;
+.fi
+
+The fields of a \fBla_time_t\fR are expected to remain within their normal
+ranges.   In particular, nanoseconds lie in the interval 0 to 999,999,999,
+seconds in 0 to 59, minutes in 0 to 59, and hours in 0 to 23.  If a field
+falls outside its range, \fBla_time_normalize()\fR adjusts the structure by
+propagating carry or borrow to adjacent fields.
+
+All time values are interpreted with respect to a clock source.  The type
+\fBla_clock_t\fR identifies the clock used for a given operation.  Clocks
+that represent real time (such as UTC, TAI, and PTP) advance according to
+a global timescale, while monotonic and CPU-time clocks measure elapsed
+time relative to an unspecified starting point.
 
 .TP
 .B LA_CLOCK_UTC
@@ -94,7 +121,87 @@ IEEE 1588-2002 Precision Time Protocol clock.
 .B LA_CLOCK_PTPv2
 IEEE 1588-2008 Precision Time Protocol V2 clock.
 
-.SH EXAMPLES
+.LP
+The \fBla_time_get()\fR function obtains the current value of the specified
+clock and stores it in the object pointed to by \fIxtp\fR.  The function
+\fBla_time_getres()\fR obtains the resolution of that clock, expressed as
+the smallest distinguishable interval.
+
+The \fBla_time_sleep()\fR function suspends execution for the interval
+specified by \fIduration\fR.  If the call is interrupted by a signal, the
+remaining interval is recomputed and the sleep is resumed.  The function
+\fBla_time_sleep_until()\fR suspends execution until the time specified by
+\fItarget\fR is reached; if that time lies in the past, the function returns
+without sleeping.
+
+The functions \fBla_time_add()\fR and \fBla_time_sub()\fR perform arithmetic
+on time values.  Addition propagates carry from nanoseconds through days
+as required.  Subtraction propagates borrow in the opposite direction and
+fails if the result would be negative.  The function \fBla_time_cmp()\fR
+compares two values by examining fields in order of decreasing significance,
+beginning with days and ending with nanoseconds.
+
+The \fBla_time_conv()\fR function converts a time value from one clock
+domain to another.  When both clocks represent real time, the conversion
+applies the required offset between the corresponding timescales.  This
+includes the adjustment between UTC and TAI.  Conversions between real-time
+clocks and relative clocks are not defined and fail.
+
+The function \fBla_time_normalize()\fR adjusts a time value so that all
+fields fall within their canonical ranges.
+
+The functions \fBla_time_to_ns()\fR and \fBla_time_from_ns()\fR convert
+between a \fBla_time_t\fR and a scalar representation in nanoseconds.
+The functions \fBla_time_to_double()\fR and \fBla_time_from_double()\fR
+perform the same conversion using seconds in double precision.
+
+The functions \fBla_time_to_ptp()\fR and \fBla_time_from_ptp()\fR convert
+between \fBla_time_t\fR values and PTP timestamps.  The function
+\fBla_time_to_rtp()\fR derives an RTP timestamp from a time value using
+the specified clock rate.
+
+.SH RETURN VALUES
+
+The functions \fBla_time_get()\fR, \fBla_time_getres()\fR,
+\fBla_time_sleep()\fR, \fBla_time_sleep_until()\fR,
+\fBla_time_conv()\fR, \fBla_time_normalize()\fR,
+\fBla_time_add()\fR, and \fBla_time_sub()\fR return 0 on success
+and -1 on error.
+
+The function \fBla_time_cmp()\fR returns -1 if the first argument
+is less than the second, 0 if they are equal, and 1 if the first
+is greater than the second.  If an invalid argument is supplied,
+the result is undefined.
+
+The function \fBla_time_to_ns()\fR returns the total number of
+nanoseconds represented by the given time value.
+
+The function \fBla_time_to_ptp()\fR returns the corresponding PTP
+timestamp expressed in nanoseconds.
+
+The function \fBla_time_to_rtp()\fR returns an RTP timestamp derived
+from the given time value and clock rate.
+
+The function \fBla_time_to_double()\fR returns the time value
+expressed as seconds in double precision.
+
+The functions \fBla_time_from_ns()\fR, \fBla_time_from_double()\fR,
+and \fBla_time_from_ptp()\fR do not return a value.
+
+.SH ERRORS
+
+.TP
+.B EINVAL
+An unsupported or unknown clock type was specified, or a conversion
+between incompatible clock types was requested.
+
+.TP
+.B EFAULT
+A NULL pointer was supplied.
+
+.TP
+.B EINTR
+A sleep operation was interrupted by a signal.
 
 .SH SEE ALSO
 
@@ -103,4 +210,3 @@ date(1), clock_gettime(2), la_ptp(3), la_time_conv(3), time(3)
 .SH STANDARDS
 
 IEEE 1588-2002, IEEE 1588-2008, POSIX.1-2008
-
