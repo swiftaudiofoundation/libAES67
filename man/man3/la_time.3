@@ -1,3 +1,7 @@
+.\" Copyright (c) 2026 Nevio Hirani <n3v1010@gmail.com>
+.\"
+.\" SPDX-License-Identifier: BSD 3-Clause License
+.\"
 .TH LA_TIME 3 "March 2026" "libAES67" "Library Functions Manual"
 .SH NAME
 .B la_time_get, la_time_getres, la_time_sleep, la_time_sleep_until,
@@ -40,8 +44,8 @@ libAES67 C Library (libAES67)
 .I int
 .BI "la_time_cmp(" "const la_time_t *lhs, const la_time_t *rhs" );
 
-.I uint64_t
-.BI "la_time_to_ns(" "const la_time_t *time" );
+.I int
+.BI "la_time_to_ns(" "uint64_t *out, const la_time_t *time" );
 
 .I void
 .BI "la_time_from_ns(" "la_time_t *time, uint64_t ns" );
@@ -83,9 +87,10 @@ typedef struct {
 
 The fields of a \fBla_time_t\fR are expected to remain within their normal
 ranges.   In particular, nanoseconds lie in the interval 0 to 999,999,999,
-seconds in 0 to 59, minutes in 0 to 59, and hours in 0 to 23.  If a field
-falls outside its range, \fBla_time_normalize()\fR adjusts the structure by
-propagating carry or borrow to adjacent fields.
+seconds in the range of 0 to 59, minutes in the range of 0 to 59, and hours
+in the range of 0 to 23.  If a field falls outside its range,
+\fBla_time_normalize()\fR adjusts the structure by propagating carry or
+borrow to adjacent fields.
 
 All time values are interpreted with respect to a clock source.  The type
 \fBla_clock_t\fR identifies the clock used for a given operation.  Clocks
@@ -150,10 +155,12 @@ clocks and relative clocks are not defined and fail.
 The function \fBla_time_normalize()\fR adjusts a time value so that all
 fields fall within their canonical ranges.
 
-The functions \fBla_time_to_ns()\fR and \fBla_time_from_ns()\fR convert
-between a \fBla_time_t\fR and a scalar representation in nanoseconds.
-The functions \fBla_time_to_double()\fR and \fBla_time_from_double()\fR
-perform the same conversion using seconds in double precision.
+The function \fBla_time_to_ns()\fR converts a \fBla_time_t\fR value
+to a count of nanoseconds.  The function \fBla_time_from_ns()\fR
+performs the inverse operation.  The functions \fBla_time_to_double()\fR
+and \fBla_time_from_double()\fR perform the same conversions using seconds
+in double precision.  The input time value is expected to be normalized;
+if any field lies outside its valid range, the function fails.
 
 The functions \fBla_time_to_ptp()\fR and \fBla_time_from_ptp()\fR convert
 between \fBla_time_t\fR values and PTP timestamps.  The function
@@ -161,7 +168,6 @@ between \fBla_time_t\fR values and PTP timestamps.  The function
 the specified clock rate.
 
 .SH RETURN VALUES
-
 The functions \fBla_time_get()\fR, \fBla_time_getres()\fR,
 \fBla_time_sleep()\fR, \fBla_time_sleep_until()\fR,
 \fBla_time_conv()\fR, \fBla_time_normalize()\fR,
@@ -173,8 +179,8 @@ is less than the second, 0 if they are equal, and 1 if the first
 is greater than the second.  If an invalid argument is supplied,
 the result is undefined.
 
-The function \fBla_time_to_ns()\fR returns the total number of
-nanoseconds represented by the given time value.
+The \fBla_time_to_ns()\fR function returns 0 on success and -1 on
+error.  On error, \fIerrno\fR is set to indicate the failure.
 
 The function \fBla_time_to_ptp()\fR returns the corresponding PTP
 timestamp expressed in nanoseconds.
@@ -189,24 +195,22 @@ The functions \fBla_time_from_ns()\fR, \fBla_time_from_double()\fR,
 and \fBla_time_from_ptp()\fR do not return a value.
 
 .SH ERRORS
-
-.TP
-.B EINVAL
-An unsupported or unknown clock type was specified, or a conversion
-between incompatible clock types was requested.
+The \fBla_time_to_ns()\fR function fails if:
 
 .TP
 .B EFAULT
-A NULL pointer was supplied.
+\fIout\fR or \fItime\fR is NULL.
 
 .TP
-.B EINTR
-A sleep operation was interrupted by a signal.
+.B EINVAL
+A field of the input time value lies outside its valid range.
+
+.TP
+.B ERANGE
+The result cannot be represented without overflow.
 
 .SH SEE ALSO
-
 date(1), clock_gettime(2), la_ptp(3), la_time_conv(3), time(3)
 
 .SH STANDARDS
-
 IEEE 1588-2002, IEEE 1588-2008, POSIX.1-2008

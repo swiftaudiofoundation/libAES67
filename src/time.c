@@ -472,10 +472,67 @@ int la_time_cmp(const la_time_t *lhs, const la_time_t *rhs) {
     return 0;
 }
 
-uint64_t la_time_to_ns(const la_time_t *time) {
-    if (!time) { return -1; }
+int la_time_to_ns(uint64_t *out, const la_time_t *time) {
+    if (!out || !time) {
+        errno = EFAULT;
+        return -1;
+    }
 
+    if (time->nsec < 0 || time->nsec >= LA_NS_PER_SEC ||
+        time->sec  < 0 || time->sec  >= LA_SEC_PER_MIN ||
+        time->min  < 0 || time->min  >= LA_MIN_PER_HOUR ||
+        time->hour < 0 || time->hour >= LA_HOUR_PER_DAY) {
+        errno = EINVAL;
+        return -1;
+    }
 
+    int64_t total = 0;
+    int64_t tmp;
+
+    /* d -> s */
+    if (__builtin_mul_overflow(time->day, LA_HOUR_PER_DAY, &tmp) ||
+        __builtin_mul_overflow(tmp, LA_MIN_PER_HOUR, &tmp) ||
+        __builtin_mul_overflow(tmp, LA_SEC_PER_MIN, &tmp) ||
+        __builtin_add_overflow(total, tmp, &total)) {
+        errno = ERANGE;
+        return -1;
+    }
+
+    /* h -> s */
+    if (__builtin_mul_overflow(time->hour, LA_MIN_PER_HOUR, &tmp) ||
+        __builtin_mul_overflow(tmp, LA_SEC_PER_MIN, &tmp) ||
+        __builtin_add_overflow(total, tmp, &total)) {
+        errno = ERANGE;
+        return -1;
+    }
+
+    /* m → s */
+    if (__builtin_mul_overflow(time->min, LA_SEC_PER_MIN, &tmp) ||
+        __builtin_add_overflow(total, tmp, &total)) {
+        errno = ERANGE;
+        return -1;
+    }
+
+    /* s */
+    if (__builtin_add_overflow(total, time->sec, &total)) {
+        errno = ERANGE;
+        return -1;
+    }
+
+    /* s → nsec */
+    if (__builtin_mul_overflow(total, LA_NS_PER_SEC, &total) ||
+        __builtin_add_overflow(total, time->nsec, &total)) {
+        errno = ERANGE;
+        return -1;
+        }
+
+    if (total < 0) {
+        errno = ERANGE;
+        return -1;
+    }
+
+    *out = (uint64_t)total;
+    return 0;
 }
 
 void la_time_from_ns(la_time_t *time, uint64_t ns) {}

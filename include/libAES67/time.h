@@ -305,10 +305,11 @@ int la_time_cmp(const la_time_t *lhs, const la_time_t *rhs);
 /**
  * @brief Convert @p la_time_t to total nanoseconds.
  *
+ * @param out Pointer to store the resulting nanoseconds.
  * @param time Input time.
- * @return Total nanoseconds as uint64_t.
+ * @return 0 on success, -1 on error.
  */
-uint64_t la_time_to_ns(const la_time_t *time);
+int la_time_to_ns(uint64_t *out, const la_time_t *time);
 
 /**
  * @brief Initialize @p la_time_t from nanoseconds.
