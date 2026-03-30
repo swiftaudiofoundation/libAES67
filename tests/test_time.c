@@ -34,18 +34,38 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*
- * libAES67.h
- * Description: Umbrella header for libAES67.
+ * test/time.c
+ * Description: Tests for clock and time abstraction.
  */
 
-#ifndef LIBAES67_LIBRARY_H
-#define LIBAES67_LIBRARY_H
+#define LIBAES67_INTERNAL_INCLUDE 1
 
-#define LIBAES67_VERSION_MAJOR 0
-#define LIBAES67_VERSION_MINOR 1
-#define LIBAES67_VERSION_PATCH 0
-
-/* DO_NOT_CHANGE - Platform header must be included first. */
 #include <libAES67/platform.h>
+#include <libAES67/time.h>
+#include <libAES67/__tai.h>
 
-#endif // LIBAES67_LIBRARY_H
+#include <time.h>
+#include <assert.h>
+
+static void test_la_time_init(void) {
+    la_time_t t = {0};
+    assert(t.sec == 0);
+    assert(t.nsec == 0);
+    assert(t.min == 0);
+    assert(t.hour == 0);
+    assert(t.day == 0);
+}
+
+/*
+ * TODO: Add test cases for la_time_from_ns, la_time_to_ns, la_time_cmp,
+ * la_time_sub, la_time_add, la_time_normalize, la_time_conv, la_time_get,
+ * la_time_getres, __la_leap_count, __la_tai_offset, la_utc_to_tai,
+ * la_tai_to_utc, la_utc_ns_to_tai_ns, la_tai_ns_to_utc_ns
+ */
+
+int main(void) {
+    test_la_time_init();
+
+    printf("All libAES67 time tests passed!\n");
+    return 0;
+}

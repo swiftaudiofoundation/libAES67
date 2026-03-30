@@ -38,12 +38,14 @@
  * Description: Clock and time abstraction for PTP.
  */
 
+#include <libAES67/platform.h>
+#include <libAES67/time.h>
+
 #include <time.h>
 #include <errno.h>
-#include <_string.h>
-
-#define LA_USE_SAFE_MUL64
-#include "../include/libAES67/time.h"
+#include <string.h>
+#include <stdint.h>
+#include <stdarg.h>
 
 LA_INLINE void la_normalize_timespec(struct timespec *ts) {
     ts->tv_sec += ts->tv_nsec / LA_NS_PER_SEC;

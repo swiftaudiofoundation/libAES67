@@ -38,6 +38,5 @@
  * Description:
  */
 
+#include "libAES67/platform.h"
 #include "libAES67.h"
-
-#include <stdio.h>

@@ -36,34 +36,17 @@
 ## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ##===----------------------------------------------------------------------===##
 
-cmake_minimum_required(VERSION 4.1)
-project(libAES67 C CXX)
+file(GLOB TEST_SRCS *.c)
 
-set(CMAKE_C_STANDARD 23)
-set(CMAKE_C_STANDARD_REQUIRED ON)
+foreach(test_src ${TEST_SRCS})
+    get_filename_component(test_name ${test_src} NAME_WE)
 
-enable_testing()
+    add_executable(${test_name} ${test_src})
+    target_link_libraries(${test_name} PRIVATE libAES67)
 
-option(BUILD_SHARED_LIBS "Build shared libraries instead of static ones" OFF)
+    if(UNIX AND NOT APPLE)
+        target_link_libraries(test_time rt)
+    endif()
 
-file(GLOB LIBAES67_SRCS
-        src/*.c
-)
-
-add_library(libAES67 ${LIBAES67_SRCS})
-
-target_include_directories(libAES67
-        PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
-)
-
-if (WIN32)
-    message(FATAL_ERROR "Windows builds are not supported yet.")
-endif()
-
-if (MSVC)
-    message(FATAL_ERROR "MSVC compiler is not supported.")
-endif()
-
-add_subdirectory(tests)
+    add_test(NAME ${test_name} COMMAND ${test_name})
+endforeach()

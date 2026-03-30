@@ -50,10 +50,10 @@
 
 #define LIBAES67_INTERNAL_INCLUDE 1
 
-#include <stdint.h>
+#include <libAES67/platform.h>
+#include <libAES67/__tai.h>
 
-#include "platform.h"
-#include "__tai.h"
+#include <stdint.h>
 
 #define LA_NS_PER_SEC        1000000000LL
 #define LA_SEC_PER_MIN       60

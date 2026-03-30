@@ -48,7 +48,7 @@
 #error "Do not include this header directly. Use <libAES67/time.h>."
 #endif
 
-#include "platform.h"
+#include <libAES67/platform.h>
 
 #define LA_TAI_UTC_INITIAL_OFFSET        10
 #define LA_EXPECTED_FINAL_TAI_UTC_OFFSET 37

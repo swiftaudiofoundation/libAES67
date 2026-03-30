@@ -41,8 +41,18 @@
 #ifndef LIBAES67_PLATFORM_H
 #define LIBAES67_PLATFORM_H
 
+#if defined(__APPLE__)
+    #ifndef _DARWIN_C_SOURCE
+        #define _DARWIN_C_SOURCE
+    #endif
+#else
+    #ifndef _POSIX_C_SOURCE
+        #define _POSIX_C_SOURCE 200809L
+    #endif
+#endif
+
 #include <stdarg.h>
-#include <_stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #ifdef __cplusplus
@@ -111,67 +121,60 @@
     #define LA_API __attribute__((visibility("default")))
 #endif
 
-#ifdef LA_USE_SAFE_MUL64
-    #define LA_SAFE_MUL64(a, b, out)                        \
-        do {                                                \
-            if (__builtin_mul_overflow((a), (b), out)) {    \
-                errno = ERANGE;                             \
-                return -1;                                  \
-            }                                               \
-        } while (0)
+#define LA_SAFE_MUL64(a, b, out)                           \
+       do {                                                \
+           if (__builtin_mul_overflow((a), (b), out)) {    \
+               errno = ERANGE;                             \
+               return -1;                                  \
+           }                                               \
+       } while (0)
 
-    #define LA_SAFE_ADD64(a, b, out)                        \
-        do {                                                \
-            if (__builtin_add_overflow((a), (b), out)) {    \
-                errno = ERANGE;                             \
-                return -1;                                  \
-            }                                               \
-        } while (0)
-#else
-#error "LA_USE_SAFE_MUL not defined, cannot use SAFE_MUL/ADD macros"
-#endif
+#define LA_SAFE_ADD64(a, b, out)                           \
+       do {                                                \
+           if (__builtin_add_overflow((a), (b), out)) {    \
+               errno = ERANGE;                             \
+               return -1;                                  \
+           }                                               \
+       } while (0)
 
 __LA_BEGIN_C_DECLS
 
 #define xasprintf(strp, ...) la_xasprintf((strp), ##__VA_ARGS__)
 
 LA_INLINE int la_xasprintf(char **strp, const char *fmt, ...) {
+    if (!strp || !fmt) { return -1; }
+
     va_list args;
     va_start(args, fmt);
 
-#if defined(__GLIBC__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
-    const int ret = vasprintf(strp, fmt, args);
-    va_end(args);
-    return ret;
-#else
     va_list args_copy;
     va_copy(args_copy, args);
 
-    int len = vsnprintf(NULL, 0, fmt, args);
+    int len = vsnprintf(NULL, 0, fmt, args_copy);
+    va_end(args_copy);
+
     if (len < 0) {
-        va_end(args_copy);
         va_end(args);
         return -1;
     }
 
     *strp = malloc(len + 1);
     if (!*strp) {
-        va_end(args_copy);
         va_end(args);
         return -1;
     }
 
+    va_copy(args_copy, args);
     int ret = vsnprintf(*strp, (size_t)len + 1, fmt, args_copy);
+    va_end(args_copy);
+    va_end(args);
+
     if (ret < 0) {
         free(*strp);
         *strp = NULL;
     }
 
-    va_end(args_copy);
-    va_end(args);
-
     return ret;
-#endif
 }
 
 __LA_END_C_DECLS

@@ -41,7 +41,9 @@
 #ifndef LIBAES67_ENDIAN_H
 #define LIBAES67_ENDIAN_H
 
-#idndef LIBAES67_INTERNAL_INCLUDE
+#include <libAES67/platform.h>
+
+#ifndef LIBAES67_INTERNAL_INCLUDE
 #error "Do not include this header directly."
 #endif
 
@@ -55,8 +57,6 @@
 #elif defined(__APPLE__) || defined(__FreeBSD__)
     #include <sys/endian.h>
 #endif
-
-#include "platform.h"
 
 #ifndef LA_BYTE_ORDER
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && defined(__ORDER_BIG_ENDIAN__)
