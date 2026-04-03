@@ -356,15 +356,15 @@ int la_time_normalize(la_time_t *xtp) {
     } else if (xtp->nsec < 0) {
         const int64_t borrow = (-xtp->nsec + LA_NS_PER_SEC - 1) / LA_NS_PER_SEC;
         xtp->sec  -= borrow;
-        xtp->nsec += borrow * LA_NS_PER_SEC;
+        xtp->nsec += (int_fast32_t)(borrow * LA_NS_PER_SEC);
     }
 
     if (xtp->sec >= LA_SEC_PER_MIN) {
-        xtp->min  += xtp->sec / LA_SEC_PER_MIN;
+        xtp->min  += (int_fast32_t)(xtp->sec / LA_SEC_PER_MIN);
         xtp->sec  %= LA_SEC_PER_MIN;
     } else if (xtp->sec < 0) {
         const int64_t borrow = (-xtp->sec + LA_SEC_PER_MIN - 1) / LA_SEC_PER_MIN;
-        xtp->min  -= borrow;
+        xtp->min  -= (int_fast32_t)borrow;
         xtp->sec  += borrow * LA_SEC_PER_MIN;
     }
 
@@ -373,8 +373,8 @@ int la_time_normalize(la_time_t *xtp) {
         xtp->min  %= LA_MIN_PER_HOUR;
     } else if (xtp->min < 0) {
         const int64_t borrow = (-xtp->min + LA_MIN_PER_HOUR - 1) / LA_MIN_PER_HOUR;
-        xtp->hour -= borrow;
-        xtp->min  += borrow * LA_MIN_PER_HOUR;
+        xtp->hour -= (int_fast32_t)borrow;
+        xtp->min  += (int_fast32_t)(borrow * LA_MIN_PER_HOUR);
     }
 
     if (xtp->hour >= LA_HOUR_PER_DAY) {
@@ -382,8 +382,8 @@ int la_time_normalize(la_time_t *xtp) {
         xtp->hour %= LA_HOUR_PER_DAY;
     } else if (xtp->hour < 0) {
         const int64_t borrow = (-xtp->hour + LA_HOUR_PER_DAY - 1) / LA_HOUR_PER_DAY;
-        xtp->day  -= borrow;
-        xtp->hour += borrow * LA_HOUR_PER_DAY;
+        xtp->day  -= (int_fast32_t)borrow;
+        xtp->hour += (int_fast32_t)(borrow * LA_HOUR_PER_DAY);
     }
 
     if (xtp->day < 0) {
