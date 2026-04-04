@@ -139,11 +139,11 @@ int la_time_getres(la_time_t *res, const la_clock_t clock_type) {
                 if (clock_getres(CLOCK_TAI, &ts)  != 0) { return -1; }
             #else
                 /*
-                 * Simulate TAI resolution on platforms without CLOCK_TAI (e.g., macOS).
+                 * Simulate TAI resolution on platforms without CLOCK_TAI (e.g. macOS or Windows).
                  *
                  * We query the resolution of CLOCK_REALTIME (UTC) and convert the interval
-                 * into the equivalent TAI interval using the UTC↔TAI conversion functions
-                 * from <__tai.h>.
+                 * into the equivalent TAI interval using the UTC-TAI conversion functions
+                 * provided by <libAES67/__tai.h>.
                  *
                  * Since TAI differs from UTC only by an integer number of leap seconds,
                  * the actual clock resolution is identical. However, converting through
@@ -151,7 +151,7 @@ int la_time_getres(la_time_t *res, const la_clock_t clock_type) {
                  * the same TAI timescale used by the rest of the library.
                  *
                  * The subtraction of la_utc_ns_to_tai_ns(0) removes the constant epoch
-                 * offset (TAI-UTC = 10 s at 1970-01-01), leaving only the interval size.
+                 * offset (TAI-UTC = 10 sec at 1970-01-01), leaving only the interval size.
                  */
                 if (clock_getres(CLOCK_REALTIME, &ts) != 0) { return -1; }
 
@@ -188,8 +188,11 @@ int la_time_getres(la_time_t *res, const la_clock_t clock_type) {
             return -1;
     }
 
-    res->sec = ts.tv_sec;
+    res->sec  = ts.tv_sec;
     res->nsec = (int_fast32_t)ts.tv_nsec;
+    res->min  = 0;
+    res->hour = 0;
+    res->day  = 0;
 
     return 0;
 }

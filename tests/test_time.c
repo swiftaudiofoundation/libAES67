@@ -82,9 +82,112 @@ static void test_la_time_init(void) {
  *    - static void test_la_tai_to_utc(void) {}
  *    - static void test_la_utc_ns_to_tai_ns(void) {}
  *    - static void test_la_tai_ns_to_utc_ns(void) {}
- *    - static void test_la_time_get(void) {}
- *    - static void test_la_time_getres(void) {}
  */
+
+//===========================================================================
+static void test_la_time_get_utc_basic(void) {
+    printf("== la_time_get UTC basic\n");
+
+    la_time_t xtp;
+    assert(la_time_get(&xtp, LA_CLOCK_UTC) == 0);
+
+    assert(xtp.nsec >= 0 && xtp.nsec < LA_NS_PER_SEC);
+    assert(xtp.sec  >= 0 && xtp.sec  < LA_SEC_PER_MIN);
+    assert(xtp.min  >= 0 && xtp.min  < LA_MIN_PER_HOUR);
+    assert(xtp.hour >= 0 && xtp.hour < LA_HOUR_PER_DAY);
+    assert(xtp.day  >= 0);
+}
+
+static void test_la_time_get_monotonic_progres(void) {
+    printf("== la_time_get monotonic progression\n");
+
+    la_time_t a = {0}, b = {0};
+
+    assert(la_time_get(&a, LA_CLOCK_MONOTONIC) == 0);
+
+    /* Wait 1 ms for time to advance */
+    const struct timespec req = { .tv_sec = 0, .tv_nsec = 1 * 1000 * 1000 };
+    nanosleep(&req, NULL);
+
+    assert(la_time_get(&b, LA_CLOCK_MONOTONIC) == 0);
+
+    la_time_normalize(&a);
+    la_time_normalize(&b);
+
+    /* Expect monotonic progress */
+    assert(la_time_cmp(&b, &a) > 0);
+}
+
+//===========================================================================
+static void test_la_time_getres_utc(void) {
+    printf("== Resolution UTC\n");
+
+    la_time_t res;
+    const int ret = la_time_getres(&res, LA_CLOCK_UTC);
+
+    assert(ret == 0);
+
+    assert(res.day  >= 0);
+    assert(res.hour >= 0);
+    assert(res.min  >= 0);
+    assert(res.sec  >= 0);
+    assert(res.nsec >= 0);
+
+    assert(res.nsec < LA_NS_PER_SEC);
+    assert(res.sec  < 60);
+    assert(res.min  < 60);
+    assert(res.hour < 24);
+
+    assert(!(res.day == 0 &&
+             res.hour == 0 &&
+             res.min == 0 &&
+             res.sec == 0 &&
+             res.nsec == 0));
+}
+
+static void test_la_time_getres_tai(void) {
+    printf("== Resolution TAI\n");
+
+    la_time_t utc, tai;
+
+    assert(la_time_getres(&utc, LA_CLOCK_UTC) == 0);
+    assert(la_time_getres(&tai, LA_CLOCK_TAI) == 0);
+
+    /*
+     * Resolution should be identical between UTC and TAI,
+     * since they differ only by a constant offset.
+     */
+    assert(utc.nsec == tai.nsec);
+    assert(utc.sec  == tai.sec);
+}
+
+static void test_la_time_getres_null(void) {
+    printf("== Resolution NULL\n");
+
+    assert(la_time_getres(NULL, LA_CLOCK_UTC) == -1);
+}
+
+static void test_la_time_getres_invalid_clock(void) {
+    printf("== Resolution Invalid clock & sys comparison\n");
+
+    la_time_t res;
+    const int ret = la_time_getres(&res, (la_clock_t)999);
+
+    assert(ret == -1);
+}
+
+static void test_la_time_getres_utc_vs_system(void) {
+    printf("== Resolution UTC vs system\n");
+
+    la_time_t res;
+    struct timespec ts;
+
+    assert(la_time_getres(&res, LA_CLOCK_UTC) == 0);
+    assert(clock_getres(CLOCK_REALTIME, &ts) == 0);
+
+    assert(res.sec == ts.tv_sec);
+    assert(res.nsec == ts.tv_nsec);
+}
 
 //===========================================================================
 static void test_la_time_conv_utc_to_tai_1970(void) {
@@ -487,6 +590,17 @@ static void test_la_time_from_ns_null_ptr_error(void) {
 int main(void) {
     test_la_time_init();
 
+    printf("========= Running la_time_get =========\n");
+    test_la_time_get_utc_basic();
+    test_la_time_get_monotonic_progres();
+
+    printf("======== Running la_time_getres =======\n");
+    test_la_time_getres_utc();
+    test_la_time_getres_tai();
+    test_la_time_getres_null();
+    test_la_time_getres_invalid_clock();
+    test_la_time_getres_utc_vs_system();
+
     printf("========= Running la_time_conv ========\n");
     test_la_time_conv_utc_to_tai_1970();
     test_la_time_conv_tai_to_utc_1970();
@@ -534,6 +648,6 @@ int main(void) {
     test_la_time_from_ns_invariants();
     test_la_time_from_ns_null_ptr_error();
 
-    printf("All libAES67 time tests passed!\n");
+    printf("\nAll libAES67 time tests passed!\n");
     return 0;
 }
